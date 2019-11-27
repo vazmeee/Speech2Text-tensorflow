@@ -2,23 +2,16 @@
 # 42 epochs 0.783 speech18 dataset
 
 import numpy as np
-#import tqdm as tdqm
 from tqdm import tqdm
-#import matplotlib.pyplot as plt
 
 import os
 import librosa
-#import IPython.display as ipd
-#import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import wavfile
-#import warnings
 
-#warnings.filterwarnings("ignore")
+os.environ["CUDA_VISIBLE_DEVICES"]="-1" #change to zero to run on GPU
 
-os.environ["CUDA_VISIBLE_DEVICES"]="-1"
-
-train_audio_path = 'C:/Users/ROG/Desktop/TDL/project/speech18/'
+train_audio_path = '.dataset-path/'
 labels=os.listdir(train_audio_path)
 
 all_wave = []
@@ -39,19 +32,10 @@ y=le.fit_transform(all_label)
 classes= list(le.classes_)
 
 
-#from keras.utils import np_utils
-#y=np_utils.to_categorical(y, num_classes=len(labels))
-
-
-
 all_wave = np.array(all_wave).reshape(-1,8000,1)
 
 from sklearn.model_selection import train_test_split
 x_tr, x_val, y_tr, y_val = train_test_split(np.array(all_wave),np.array(y),stratify=y,test_size = 0.2,random_state=777,shuffle=True)
-
-
-
-
 
 batch_size = 20
 n_epochs = 40
@@ -62,26 +46,14 @@ import tensorflow as tf
 
 
 def conv1dl(x, W, b, strides=1):
-#    x = tf.nn.conv2d(x, W, strides=[1,1,1,1], padding='VALID')
     x = tf.nn.conv1d(x, W, stride=1, padding='VALID')
     x = tf.nn.bias_add(x, b)
     return tf.nn.leaky_relu(x,alpha=0.20)
-    #return tf.math.tanh(x)
 
 def conv1dt(x, W, b, strides=1):
-#    x = tf.nn.conv2d(x, W, strides=[1,1,1,1], padding='VALID')
     x = tf.nn.conv1d(x, W, stride=1, padding='VALID')
     x = tf.nn.bias_add(x, b)
-    #return tf.nn.leaky_relu(x,alpha=0.20)
     return tf.math.tanh(x)
-
-
-
-#relu -- 0.35
-#leaky_relu alpha 0.2 -- 0.44
-#leaky relu alpha 0.3 -- 0.43
-#leaky_relu alpha 0.2 lr 1e-3 batch 20 -- 0.478
-#leaky_relu alpha 0.2 lr 1e-3 batch 20 epoch 40 no_dropout -- 0.43
 
 weights = {
     # Convolution Layers
@@ -117,9 +89,7 @@ biases = {
 
 def conv_net(data, weights, biases, training=False):
     # Convolution layers
-#    print(data.get_shape().as_list())
     conv1 = conv1dl(data, weights['c1'], biases['c1'])
-#    pool11= tf.nn.max_pool(conv1, ksize=[1,1,3,1], padding='VALID',strides=[1,1,3,1])
     print(conv1.get_shape().as_list())
     pool11= tf.nn.max_pool1d(conv1, ksize=3, padding='VALID', strides=3)
     print(pool11.get_shape().as_list())
@@ -129,7 +99,6 @@ def conv_net(data, weights, biases, training=False):
 
     conv2 = conv1dl(pool11, weights['c2'], biases['c2'])
     print(conv2.get_shape().as_list())
-#    pool12= tf.nn.max_pool(conv2, ksize=[1,1,3,1], padding='VALID',strides=[1,1,3,1])
     pool12= tf.nn.max_pool1d(conv2, ksize=3, padding='VALID', strides=3)
     print(pool12.get_shape().as_list())
     if training:
@@ -137,7 +106,6 @@ def conv_net(data, weights, biases, training=False):
 
     conv3 = conv1dl(pool12, weights['c3'], biases['c3'])
     print(conv3.get_shape().as_list())
-#    pool21= tf.nn.max_pool(conv3, ksize=[1,1,3,1], padding='VALID',strides=[1,1,3,1])
     pool21= tf.nn.max_pool1d(conv3, ksize=3, padding='VALID', strides=3)
     print(pool21.get_shape().as_list())
     if training:
@@ -145,7 +113,6 @@ def conv_net(data, weights, biases, training=False):
 
     conv4 = conv1dl(pool21, weights['c4'], biases['c4'])
     print(conv4.get_shape().as_list())
-#    pool22= tf.nn.max_pool(conv4, ksize=[1,1,3,1], padding='VALID',strides=[1,1,3,1])
     pool22= tf.nn.max_pool1d(conv4, ksize=3, padding='VALID', strides=3)
     print(pool22.get_shape().as_list())
     if training:
@@ -154,13 +121,7 @@ def conv_net(data, weights, biases, training=False):
     # Flatten
     shapenn=pool22.get_shape().as_list()
     print(shapenn)
-#    flat=tf.reshape(pool22, [-1, shapenn[1]*shapenn[2] ])
     flat = tf.reshape(pool22, [-1, weights['d1'].get_shape().as_list()[0]])
-    #flat=tf.reshape(pool22, [-1,])
-#    flat=tf.reshape(pool22, [-1, 6080] )
-#    flat=tf.reshape(pool22,[int(pool22.shape[1]), int(pool22.shape[3]) ])
-#    flat = tf.reshape(pool22, [-1, weights['d1'].shape[0]])
-    # [7*7*32] = [1568]
 
     # Fully connected layer
     fc1 = tf.add(tf.matmul(flat, weights['d1']), biases['d1'])
@@ -175,12 +136,6 @@ def conv_net(data, weights, biases, training=False):
 
     # Dropout
     if training:
-        #pool11 = tf.nn.dropout(pool11, rate=0.3)
-        #pool12 = tf.nn.dropout(pool12, rate=0.3)
-        #pool21 = tf.nn.dropout(pool21, rate=0.3)
-        #pool22 = tf.nn.dropout(pool22, rate=0.3)
-
-        #fc1 = tf.nn.dropout(fc1, rate=0.3)
         fc2 = tf.nn.dropout(fc2, rate=0.3)
 
     # Output
